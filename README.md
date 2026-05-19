@@ -1,4 +1,4 @@
-# GMB Email Classifier
+# GMB Email Classifier <!-- v1.0.1 -->
 
 An enterprise-grade email classification system that categorises incoming business emails in real time using Groq's inference API and Meta's Llama 3.3-70B model. Designed to slot into any business inbox pipeline — helpdesks, CRMs, or internal ticketing systems — with zero fine-tuning required.
 
