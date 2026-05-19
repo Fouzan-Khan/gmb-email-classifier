@@ -31,6 +31,7 @@ def _build_system_prompt() -> str:
     category_block = "\n".join(
         f"  - {cat.name}: {cat.description}" for cat in CATEGORIES
     )
+    #print(f"------------------------------------------{category_block}")
     return (
         "You are an enterprise email classification system.\n"
         "Classify the email into exactly one of the following categories:\n"
