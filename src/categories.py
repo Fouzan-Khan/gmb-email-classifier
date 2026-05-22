@@ -1,4 +1,4 @@
-"""Email classification taxonomy for the enterprise email classifier."""
+"""Email classification taxonomy for personal email classifier."""
 
 from dataclasses import dataclass
 
@@ -7,57 +7,64 @@ from dataclasses import dataclass
 class Category:
     name: str
     description: str
+    folder: str  # IMAP folder/label name
 
 
 CATEGORIES: list[Category] = [
     Category(
-        name="Invoice",
-        description=(
-            "Financial documents: vendor invoices, payment requests, "
-            "billing statements, purchase orders, or payment reminders."
-        ),
-    ),
-    Category(
-        name="HR Query",
-        description=(
-            "Human resources topics: leave requests, payroll questions, "
-            "benefits, onboarding, performance reviews, or HR policy."
-        ),
-    ),
-    Category(
-        name="IT Support",
-        description=(
-            "Technical help requests: hardware or software issues, "
-            "password resets, VPN access problems, or system outages."
-        ),
-    ),
-    Category(
-        name="Client Request",
-        description=(
-            "Incoming requests, questions, complaints, or feedback from "
-            "external clients about products, services, or deliverables."
-        ),
-    ),
-    Category(
-        name="Internal Announcement",
-        description=(
-            "Company-wide or team communications: policy updates, event "
-            "invitations, org changes, or general internal notices."
-        ),
-    ),
-    Category(
         name="Spam",
+        folder="Spam",
         description=(
-            "Unsolicited promotional emails, phishing attempts, scam "
-            "messages, or irrelevant mass mailings."
+            "Unsolicited promotional emails, phishing attempts, scam messages, "
+            "mass marketing with no opt-in, lottery/prize notifications, or "
+            "obviously fake/fraudulent content."
+        ),
+    ),
+    Category(
+        name="Learning",
+        folder="Learning",
+        description=(
+            "Emails related to education or skill-building: online course updates, "
+            "tutorial newsletters, coding challenges, webinars, study resources, "
+            "or content from platforms like Coursera, Udemy, YouTube, Khan Academy, "
+            "or newsletters covering programming, tech, science, or other learning topics."
+        ),
+    ),
+    Category(
+        name="Jobs",
+        folder="Jobs",
+        description=(
+            "Job-related emails where the user applied or engaged: application "
+            "confirmations, interview invitations, offer letters, rejection notices, "
+            "or status updates from job boards like LinkedIn, Indeed, or Glassdoor "
+            "for roles the user actively applied to."
+        ),
+    ),
+    Category(
+        name="Recruiters",
+        folder="Recruiters",
+        description=(
+            "Cold outreach from recruiters or headhunters: unsolicited messages "
+            "about job opportunities, invitations to apply, or recruiter introductions "
+            "from staffing agencies or HR professionals — distinct from jobs the user "
+            "applied for themselves."
+        ),
+    ),
+    Category(
+        name="Personal",
+        folder="Personal",
+        description=(
+            "Messages from friends, family, or personal acquaintances: casual "
+            "conversation, social plans, personal updates, or any informal "
+            "communication not related to work, business, or job searching."
         ),
     ),
     Category(
         name="Other",
+        folder="Other",
         description="Emails that do not clearly fit any of the categories above.",
     ),
 ]
 
-# Lookup helpers used by the classifier and tests
 CATEGORY_MAP: dict[str, Category] = {cat.name: cat for cat in CATEGORIES}
 CATEGORY_NAMES: list[str] = [cat.name for cat in CATEGORIES]

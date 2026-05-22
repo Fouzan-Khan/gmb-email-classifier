@@ -1,5 +1,5 @@
 """
-Integration tests for the email classifier.
+Integration tests for the personal email classifier.
 
 Each test sends a realistic synthetic email to the Groq API and asserts:
   - The returned category matches the expected label
@@ -15,10 +15,6 @@ import pytest
 from src.classifier import ClassificationResult, classify_email
 
 
-# ---------------------------------------------------------------------------
-# Helper
-# ---------------------------------------------------------------------------
-
 def _assert_result(result: ClassificationResult, expected_category: str) -> None:
     assert result.category == expected_category, (
         f"Expected '{expected_category}', got '{result.category}'. "
@@ -33,165 +29,7 @@ def _assert_result(result: ClassificationResult, expected_category: str) -> None
 
 
 # ---------------------------------------------------------------------------
-# Invoice (2 tests)
-# ---------------------------------------------------------------------------
-
-def test_invoice_vendor_billing():
-    result = classify_email(
-        subject="Invoice #INV-2024-0892 for Office Supplies — Due June 15",
-        body=(
-            "Dear Accounts Payable Team,\n\n"
-            "Please find attached invoice #INV-2024-0892 from Acme Office Supplies "
-            "for the delivery of printer cartridges, paper, and desk accessories. "
-            "Total amount due: $1,247.50. Payment terms: Net 30 from invoice date (May 16, 2024).\n\n"
-            "Please remit payment to the bank account details listed on the attached invoice. "
-            "For questions, contact billing@acmesupplies.com.\n\n"
-            "Thank you for your business.\n"
-            "— Acme Office Supplies Billing Department"
-        ),
-    )
-    _assert_result(result, "Invoice")
-
-
-def test_invoice_overdue_payment_reminder():
-    result = classify_email(
-        subject="SECOND NOTICE: Overdue Payment — Invoice #5571",
-        body=(
-            "This is a reminder that invoice #5571 issued on April 1, 2024 "
-            "for $3,800.00 remains unpaid and is now 45 days overdue. "
-            "Your contracted payment terms require settlement within 30 days of invoice date.\n\n"
-            "Please process payment immediately to avoid service interruption and late fees "
-            "of 1.5% per month. If payment has already been sent, please share the transaction "
-            "reference.\n\n"
-            "Contact our accounts receivable team at ar@techservices.io."
-        ),
-    )
-    _assert_result(result, "Invoice")
-
-
-# ---------------------------------------------------------------------------
-# HR Query (1 test)
-# ---------------------------------------------------------------------------
-
-def test_hr_query_maternity_leave():
-    result = classify_email(
-        subject="Maternity Leave Request — Starting September 2, 2024",
-        body=(
-            "Hi Sarah,\n\n"
-            "I wanted to formally notify HR of my intent to take maternity leave beginning "
-            "September 2, 2024. My due date is August 25, and I plan to take the full 16 weeks "
-            "of paid leave as outlined in our company policy.\n\n"
-            "I've already briefed my manager, David Chen, and we're working on a handover plan. "
-            "Could you please send me the relevant forms and confirm the leave dates in our HR "
-            "system? I'd also like to understand the process for maintaining my benefits during "
-            "the leave period.\n\n"
-            "Thank you,\nEmily Watson"
-        ),
-    )
-    _assert_result(result, "HR Query")
-
-
-# ---------------------------------------------------------------------------
-# IT Support (2 tests)
-# ---------------------------------------------------------------------------
-
-def test_it_support_password_reset():
-    result = classify_email(
-        subject="URGENT: Locked Out of Corporate Account — Password Reset Needed",
-        body=(
-            "Hello IT Support,\n\n"
-            "I have been locked out of my corporate account since this morning. "
-            "I believe my password expired and the self-service reset portal is returning "
-            "the error: 'Reset token invalid.'\n\n"
-            "I need access urgently as I have client calls scheduled for today. "
-            "My employee ID is EMP-4821, username: m.johnson@company.com.\n\n"
-            "Please reset my password or walk me through the fix as soon as possible.\n\n"
-            "— Michael Johnson, Sales Team"
-        ),
-    )
-    _assert_result(result, "IT Support")
-
-
-def test_it_support_laptop_boot_failure():
-    result = classify_email(
-        subject="Laptop Won't Boot After Last Night's Windows Update",
-        body=(
-            "Hi IT,\n\n"
-            "My Dell Latitude 5420 failed to start this morning after automatically installing "
-            "a Windows 11 update overnight. It is stuck at the loading screen with a spinning "
-            "circle and never reaches the desktop. I've tried a hard reboot twice with no success.\n\n"
-            "Asset tag: LT-00342. I have a presentation in two hours and urgently need a working "
-            "machine or remote assistance. Please advise.\n\n"
-            "Thanks,\nSandra Lee, Product Team"
-        ),
-    )
-    _assert_result(result, "IT Support")
-
-
-# ---------------------------------------------------------------------------
-# Client Request (2 tests)
-# ---------------------------------------------------------------------------
-
-def test_client_request_feature_request():
-    result = classify_email(
-        subject="Feature Request: Bulk CSV Export for Monthly Reports",
-        body=(
-            "Hi Product Team,\n\n"
-            "As one of your enterprise clients, we have been using your platform for six months "
-            "and are overall very happy. However, our finance team struggles each month because "
-            "there is no way to export transaction data in bulk to CSV. We currently export each "
-            "account individually, which takes hours for our 200+ accounts.\n\n"
-            "Could you prioritise adding a bulk export feature? It would save us significant time "
-            "and could be a strong differentiator for other enterprise customers as well. "
-            "Happy to jump on a call to discuss requirements.\n\n"
-            "Best regards,\nJames Harrington, CFO — Harrington & Associates"
-        ),
-    )
-    _assert_result(result, "Client Request")
-
-
-def test_client_request_billing_complaint():
-    result = classify_email(
-        subject="Complaint: Double Charged on April Invoice",
-        body=(
-            "To whom it may concern,\n\n"
-            "I've noticed that our company was charged twice for the Professional Plan "
-            "subscription in April — on both April 1 and April 14. Our account number is "
-            "ACC-77821. I've attached screenshots from our bank statement showing both charges "
-            "totalling $598.\n\n"
-            "This has never happened before and I expect a full refund of the duplicate charge "
-            "within 5 business days. Please acknowledge this email and provide a resolution "
-            "timeline.\n\n"
-            "Regards,\nPriya Mehta, Finance Manager — GlobalLogix Inc."
-        ),
-    )
-    _assert_result(result, "Client Request")
-
-
-# ---------------------------------------------------------------------------
-# Internal Announcement (1 test)
-# ---------------------------------------------------------------------------
-
-def test_internal_announcement_all_hands():
-    result = classify_email(
-        subject="All-Hands Meeting: Thursday, May 22 at 2:00 PM — Q2 Review & Roadmap",
-        body=(
-            "Dear Team,\n\n"
-            "You are invited to our Q2 All-Hands meeting this Thursday, May 22 at 2:00 PM "
-            "in the Main Auditorium (and live on Zoom for remote employees).\n\n"
-            "CEO Mark Williams will present our Q2 financial results, followed by a deep-dive "
-            "into the H2 strategic roadmap from the leadership team. We will also be recognising "
-            "top performers from across the company.\n\n"
-            "Attendance is mandatory for all full-time employees. The Zoom link and agenda have "
-            "been shared via calendar invite. Light refreshments will be served in person.\n\n"
-            "— People & Culture Team"
-        ),
-    )
-    _assert_result(result, "Internal Announcement")
-
-
-# ---------------------------------------------------------------------------
-# Spam (1 test)
+# Spam (2 tests)
 # ---------------------------------------------------------------------------
 
 def test_spam_gift_card_scam():
@@ -211,21 +49,172 @@ def test_spam_gift_card_scam():
     _assert_result(result, "Spam")
 
 
+def test_spam_pharma_promotion():
+    result = classify_email(
+        subject="Lowest prices on Rx meds — no prescription needed!",
+        body=(
+            "Dear Valued Customer,\n\n"
+            "Get brand-name medications at 90% off retail prices — no prescription required! "
+            "Shipped discreetly to your door within 3 days.\n\n"
+            "Click here to browse our catalog: http://cheap-pharma-direct.biz/shop\n\n"
+            "Unsubscribe: http://cheap-pharma-direct.biz/unsub?id=8829"
+        ),
+    )
+    _assert_result(result, "Spam")
+
+
+# ---------------------------------------------------------------------------
+# Learning (2 tests)
+# ---------------------------------------------------------------------------
+
+def test_learning_course_update():
+    result = classify_email(
+        subject="Your Coursera course — Week 3 materials are now available",
+        body=(
+            "Hi Fouzan,\n\n"
+            "Week 3 of 'Machine Learning Specialization' is now unlocked. This week covers:\n"
+            "  • Neural networks and deep learning fundamentals\n"
+            "  • Backpropagation explained step by step\n"
+            "  • Lab: Building your first neural net in Python\n\n"
+            "Estimated time: 4 hours. Deadline: Sunday at 11:59 PM.\n\n"
+            "Go to course → https://www.coursera.org/learn/machine-learning\n\n"
+            "Happy learning!\n— The Coursera Team"
+        ),
+    )
+    _assert_result(result, "Learning")
+
+
+def test_learning_tech_newsletter():
+    result = classify_email(
+        subject="This week in AI: GPT-5 benchmarks, new open-source models & more",
+        body=(
+            "Hello,\n\n"
+            "Here's your weekly digest of what's happening in AI and machine learning:\n\n"
+            "1. GPT-5 benchmarks leaked — what they mean for developers\n"
+            "2. Mistral releases a new 7B model outperforming GPT-3.5\n"
+            "3. Tutorial: Fine-tuning LLMs on your own data with LoRA\n"
+            "4. Paper of the week: 'Scaling Laws for Neural Language Models'\n\n"
+            "Read more at: https://aiweekly.co/issues/301\n\n"
+            "You're receiving this because you subscribed at aiweekly.co.\n"
+            "Unsubscribe | Manage preferences"
+        ),
+    )
+    _assert_result(result, "Learning")
+
+
+# ---------------------------------------------------------------------------
+# Jobs (2 tests)
+# ---------------------------------------------------------------------------
+
+def test_jobs_interview_invitation():
+    result = classify_email(
+        subject="Interview Invitation — Software Engineer at Stripe",
+        body=(
+            "Hi Fouzan,\n\n"
+            "Thank you for applying to the Software Engineer — Payments Infrastructure role at Stripe. "
+            "We've reviewed your application and would love to move forward with a technical screen.\n\n"
+            "Please use the link below to schedule a 45-minute technical interview with one of our "
+            "engineers at your convenience:\n\n"
+            "Schedule: https://stripe.com/interview/schedule?token=abc123\n\n"
+            "The interview will cover data structures, algorithms, and system design. "
+            "Slots are available this week and next.\n\n"
+            "Looking forward to speaking with you.\n\n"
+            "Best,\nSarah Kim\nTechnical Recruiting, Stripe"
+        ),
+    )
+    _assert_result(result, "Jobs")
+
+
+def test_jobs_application_rejection():
+    result = classify_email(
+        subject="Update on your application — Backend Engineer at Notion",
+        body=(
+            "Hi Fouzan,\n\n"
+            "Thank you for taking the time to apply for the Backend Engineer position at Notion "
+            "and for the conversations we've had throughout the process.\n\n"
+            "After careful consideration, we've decided to move forward with other candidates "
+            "whose experience more closely matches our current needs. This was a difficult decision "
+            "given the strength of your background.\n\n"
+            "We'll keep your profile on file and encourage you to apply again in the future. "
+            "We wish you the very best in your job search.\n\n"
+            "Warm regards,\nNotion Recruiting Team"
+        ),
+    )
+    _assert_result(result, "Jobs")
+
+
+# ---------------------------------------------------------------------------
+# Recruiters (2 tests)
+# ---------------------------------------------------------------------------
+
+def test_recruiters_linkedin_outreach():
+    result = classify_email(
+        subject="Exciting opportunity at a Series B startup — are you open to a chat?",
+        body=(
+            "Hi Fouzan,\n\n"
+            "I came across your profile on LinkedIn and was really impressed by your background "
+            "in backend engineering and distributed systems.\n\n"
+            "I'm a technical recruiter at TalentBridge and I'm working with a Series B fintech "
+            "startup (YC W22, $40M raised) that's looking for a Senior Backend Engineer. "
+            "They're offering a very competitive comp package: $180k–$220k base + equity.\n\n"
+            "Would you be open to a quick 15-minute call this week to see if there could be a fit?\n\n"
+            "Best,\nJessica Park\nSenior Technical Recruiter, TalentBridge\njessp@talentbridge.io"
+        ),
+    )
+    _assert_result(result, "Recruiters")
+
+
+def test_recruiters_agency_blast():
+    result = classify_email(
+        subject="Are you looking for your next role? We have 200+ open positions!",
+        body=(
+            "Hello,\n\n"
+            "My name is Mark and I'm a recruiter at DevHire Solutions. We specialize in placing "
+            "software engineers at top tech companies across the country.\n\n"
+            "Based on your skills, I think you'd be a great fit for several open roles we're "
+            "currently filling — including positions at FAANG companies and hot startups.\n\n"
+            "If you're open to exploring new opportunities, reply to this email with your resume "
+            "and I'll reach out with the best matches for your profile.\n\n"
+            "Regards,\nMark Torres | DevHire Solutions\nmark@devhire.io | +1 (555) 012-3456"
+        ),
+    )
+    _assert_result(result, "Recruiters")
+
+
+# ---------------------------------------------------------------------------
+# Personal (1 test)
+# ---------------------------------------------------------------------------
+
+def test_personal_friend_message():
+    result = classify_email(
+        subject="Re: Weekend Hiking Plans — Trail Recommendation",
+        body=(
+            "Hey Fouzan,\n\n"
+            "I checked out the trails you mentioned and I think Blue Ridge Loop is the way "
+            "to go this Saturday. It's about 8 miles, moderate difficulty, and the views at "
+            "the summit are supposed to be incredible this time of year.\n\n"
+            "I'll pack extra water and snacks for everyone. Want to carpool from the coffee "
+            "shop at 7am? Let me know!\n\n"
+            "— Chris"
+        ),
+    )
+    _assert_result(result, "Personal")
+
+
 # ---------------------------------------------------------------------------
 # Other (1 test)
 # ---------------------------------------------------------------------------
 
-def test_other_personal_message():
+def test_other_utility_bill():
     result = classify_email(
-        subject="Re: Weekend Hiking Plans — Trail Recommendation",
+        subject="Your electricity bill for May is ready",
         body=(
-            "Hey Alex,\n\n"
-            "I checked out the trails you mentioned and I think Blue Ridge Loop is the way "
-            "to go this Saturday. It's about 8 miles, moderate difficulty, and the views at "
-            "the summit are supposed to be incredible this time of year.\n\n"
-            "I'll pack extra water and snacks for everyone. Want to carpool from the office "
-            "parking lot at 7am? Let me know!\n\n"
-            "— Chris"
+            "Dear Customer,\n\n"
+            "Your electricity bill for the period April 1 – April 30 is now available.\n\n"
+            "Amount due: $87.42\n"
+            "Due date: May 15, 2024\n\n"
+            "You can view and pay your bill at https://myaccount.citypower.com.\n\n"
+            "Thank you,\nCity Power & Light"
         ),
     )
     _assert_result(result, "Other")

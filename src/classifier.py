@@ -1,4 +1,4 @@
-"""Enterprise email classifier powered by Groq's Llama 3.3-70B model."""
+"""Personal email classifier powered by Groq's Llama 3.3-70B model."""
 
 import json
 import os
@@ -33,7 +33,7 @@ def _build_system_prompt() -> str:
     )
     #print(f"------------------------------------------{category_block}")
     return (
-        "You are an enterprise email classification system.\n"
+        "You are a personal email classification system.\n"
         "Classify the email into exactly one of the following categories:\n"
         f"{category_block}\n\n"
         "Respond with a JSON object and nothing else — no markdown, no extra text:\n"
