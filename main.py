@@ -1,7 +1,8 @@
 """Personal email classifier — one-shot CLI entry point.
 
 Usage:
-    python main.py
+    python main.py           # process unread emails only (default)
+    python main.py --all     # process all emails in INBOX
 
 Set the following in your .env file:
     GROQ_API_KEY   — from https://console.groq.com
@@ -10,20 +11,38 @@ Set the following in your .env file:
                      Generate one at: https://myaccount.google.com/apppasswords
 """
 
+import argparse
+
 from src.imap_client import run_classifier
 
 
 def main() -> None:
-    print("Connecting to Gmail and fetching unread emails...\n")
+    parser = argparse.ArgumentParser(description="Classify and file Gmail inbox emails.")
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Process all emails in INBOX, not just unread ones.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Maximum number of emails to process (default: 50).",
+    )
+    args = parser.parse_args()
+
+    unread_only = not args.all
+    scope = "all" if args.all else "unread"
+    print(f"Connecting to Gmail and fetching {scope} emails...\n")
 
     try:
-        results = run_classifier(limit=50)
+        results = run_classifier(limit=args.limit, unread_only=unread_only)
     except EnvironmentError as exc:
         print(f"Configuration error:\n{exc}")
         return
 
     if not results:
-        print("No unread emails found in INBOX.")
+        print(f"No {scope} emails found in INBOX.")
         return
 
     errors = [r for r in results if "error" in r]

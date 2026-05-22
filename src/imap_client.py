@@ -55,12 +55,13 @@ def _extract_text(msg) -> str:
     return ""
 
 
-def run_classifier(limit: int = 50) -> list[dict]:
+def run_classifier(limit: int = 50, unread_only: bool = True) -> list[dict]:
     """
-    Connect to Gmail, classify unread INBOX emails, and move each to its folder.
+    Connect to Gmail, classify INBOX emails, and move each to its folder.
 
     Args:
-        limit: Maximum number of unread emails to process (most recent first).
+        limit: Maximum number of emails to process (most recent first).
+        unread_only: If True (default), only process unread emails. If False, process all.
 
     Returns:
         List of result dicts with keys: subject, category, confidence, reason, folder.
@@ -73,7 +74,8 @@ def run_classifier(limit: int = 50) -> list[dict]:
         conn.login(user, password)
         conn.select("INBOX")
 
-        status, data = conn.uid("SEARCH", None, "UNSEEN")
+        search_criterion = "UNSEEN" if unread_only else "ALL"
+        status, data = conn.uid("SEARCH", None, search_criterion)
         if status != "OK" or not data[0]:
             return results
 
