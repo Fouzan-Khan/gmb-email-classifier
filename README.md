@@ -1,25 +1,31 @@
-# GMB Email Classifier <!-- v1.0.1 -->
+# Personal Email Classifier <!-- v2.0.0 -->
 
-An enterprise-grade email classification system that categorises incoming business emails in real time using Groq's inference API and Meta's Llama 3.3-70B model. Designed to slot into any business inbox pipeline — helpdesks, CRMs, or internal ticketing systems — with zero fine-tuning required.
+A personal inbox classifier that connects to your Gmail account, reads unread emails, categorises each one using Groq's Llama 3.3-70B model, auto-creates folders, and files every email into the right place — no manual sorting required.
 
 ---
 
 ## Why This Exists
 
-Enterprise inboxes are noisy. Support tickets, vendor invoices, HR queries, and client complaints all land in the same place, creating routing delays and manual triage overhead. This classifier reads an email's subject and body, identifies its business intent, and returns a structured result — category, confidence score, and a one-sentence rationale — fast enough to act on in real time.
+Personal inboxes are noisy. Spam, recruiter cold-outreach, job alerts, learning newsletters, and messages from friends all arrive in the same pile. This tool reads each unread email, decides what it is, and moves it to a dedicated Gmail folder — so your inbox stays clean without any manual effort.
 
 ---
 
 ## How It Works
 
 ```
-Email (subject + body)
+Gmail INBOX (unread emails)
         │
         ▼
 ┌───────────────────────┐
+│   IMAP Client         │  Fetches unread emails via
+│   imap_client.py      │  imap.gmail.com:993 (SSL)
+└───────────┬───────────┘
+            │
+            ▼
+┌───────────────────────┐
 │   Prompt Builder      │  Assembles a system prompt from the
-│   _build_system_      │  category taxonomy (name + description
-│   prompt()            │  for each of 7 business categories)
+│   classifier.py       │  category taxonomy (name + description
+│                       │  for each of 6 personal categories)
 └───────────┬───────────┘
             │
             ▼
@@ -31,33 +37,31 @@ Email (subject + body)
             │
             ▼
 ┌───────────────────────┐
-│   Response Parser     │  Validates JSON, normalises category
-│   & Validator         │  against CATEGORY_MAP, clamps
-│                       │  confidence to [0.0, 1.0]
+│   Response Parser     │  Validates JSON, normalises category,
+│   & Validator         │  clamps confidence to [0.0, 1.0]
 └───────────┬───────────┘
             │
             ▼
-    ClassificationResult
-    ├── category:   str    # one of 7 defined categories
-    ├── confidence: float  # 0.0 – 1.0
-    └── reason:     str    # one-sentence explanation
+┌───────────────────────┐
+│   Folder Manager      │  Creates Gmail label if it doesn't
+│   imap_client.py      │  exist, then moves email out of INBOX
+└───────────────────────┘
 ```
 
-The classifier is stateless and single-file. There is no database, no training loop, and no vector store. It relies entirely on Llama 3.3-70B's instruction-following capability combined with a structured taxonomy prompt and enforced JSON output.
+The classifier is stateless. There is no database, no training loop, and no vector store. It relies entirely on Llama 3.3-70B's instruction-following capability with a structured taxonomy prompt and enforced JSON output.
 
 ---
 
 ## Categories
 
-| Category | Covers |
+| Folder | What goes there |
 |---|---|
-| **Invoice** | Vendor invoices, payment requests, billing statements, purchase orders |
-| **HR Query** | Leave requests, payroll questions, benefits, onboarding, HR policy |
-| **IT Support** | Hardware/software issues, password resets, VPN problems, outages |
-| **Client Request** | External client questions, complaints, feature requests, feedback |
-| **Internal Announcement** | Policy updates, all-hands meetings, org changes, internal notices |
-| **Spam** | Unsolicited promotions, phishing attempts, scam messages |
-| **Other** | Anything that does not clearly fit the above |
+| **Spam** | Unsolicited promotions, phishing attempts, scam messages, mass marketing |
+| **Learning** | Course updates, tech newsletters, webinars, coding challenges, educational content |
+| **Jobs** | Application confirmations, interview invites, offer letters, job board alerts for roles you applied to |
+| **Recruiters** | Cold outreach from recruiters and headhunters — roles you did not apply for |
+| **Personal** | Messages from friends, family, or personal acquaintances |
+| **Other** | Anything that does not clearly fit the above (security alerts, utility bills, etc.) |
 
 ---
 
@@ -65,25 +69,28 @@ The classifier is stateless and single-file. There is no database, no training l
 
 | Component | Choice | Reason |
 |---|---|---|
-| Language | Python 3.11 | Typed dataclasses, clean async-ready structure |
+| Language | Python 3.11 | Typed dataclasses, clean structure |
 | LLM | Llama 3.3-70B (`llama-3.3-70b-versatile`) | Strong instruction following; top open-weight model for structured output |
 | Inference | [Groq API](https://groq.com) | Sub-500ms latency at 70B scale; no GPU required |
+| Email access | `imaplib` (stdlib) | Standard IMAP over SSL — no extra dependencies |
 | Output enforcement | `response_format: json_object` | Eliminates markdown wrapping and hallucinated schema |
 | Config | `python-dotenv` | Keeps secrets out of source |
-| Tests | `pytest` (integration, live API) | Validates end-to-end behaviour, not just unit logic |
+| Tests | `pytest` (integration, live API) | Validates end-to-end classification behaviour |
 
 ---
 
 ## Project Structure
 
 ```
-gmb-email-classifier/
+personal-email-classifier/
 ├── src/
 │   ├── classifier.py      # Core classification logic and Groq client
-│   └── categories.py      # Category taxonomy (names, descriptions, lookup maps)
+│   ├── categories.py      # Category taxonomy (names, descriptions, folder map)
+│   └── imap_client.py     # Gmail IMAP: fetch, classify, create folders, move emails
 ├── tests/
-│   └── test_classifier.py # 10 integration tests across all 7 categories
-├── .env                   # GROQ_API_KEY (not committed)
+│   └── test_classifier.py # 10 integration tests across all 6 categories
+├── main.py                # One-shot CLI entry point
+├── .env                   # Credentials (not committed)
 ├── requirements.txt
 └── pyproject.toml
 ```
@@ -96,6 +103,9 @@ gmb-email-classifier/
 
 - Python 3.11+
 - A [Groq API key](https://console.groq.com) (free tier is sufficient)
+- A Gmail account with:
+  - IMAP enabled: Gmail Settings → See all settings → Forwarding and POP/IMAP → Enable IMAP
+  - An [App Password](https://myaccount.google.com/apppasswords) (requires 2-Step Verification)
 
 ### Setup
 
@@ -110,101 +120,118 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Configure your API key
-echo "GROQ_API_KEY=your_key_here" > .env
 ```
+
+### Configure credentials
+
+Create a `.env` file in the project root:
+
+```env
+GROQ_API_KEY=your_groq_key_here
+
+EMAIL_USER=you@gmail.com
+EMAIL_PASSWORD=xxxx xxxx xxxx xxxx   # Gmail App Password, NOT your regular password
+```
+
+> **Generating a Gmail App Password**
+> 1. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+> 2. Select app: **Mail**, device: **Other** → name it anything
+> 3. Copy the 16-character password into `EMAIL_PASSWORD`
 
 ---
 
 ## Usage
 
-```python
-from src.classifier import classify_email
-
-result = classify_email(
-    subject="Invoice #INV-2024-0892 for Office Supplies — Due June 15",
-    body=(
-        "Dear Accounts Payable Team,\n\n"
-        "Please find attached invoice #INV-2024-0892 from Acme Office Supplies "
-        "for printer cartridges, paper, and desk accessories. "
-        "Total amount due: $1,247.50. Payment terms: Net 30.\n\n"
-        "Please remit payment to the bank details on the attached invoice.\n"
-        "— Acme Office Supplies Billing Department"
-    ),
-)
-
-print(result)
-# [Invoice] (97% confidence) — The email is a vendor invoice requesting payment for office supplies with a specific invoice number and payment terms.
-
-print(result.category)    # 'Invoice'
-print(result.confidence)  # 0.97
-print(result.reason)      # 'The email is a vendor invoice...'
+```bash
+python main.py
 ```
 
-### Example Outputs Across Categories
+The script will:
+1. Connect to your Gmail inbox over IMAP
+2. Fetch up to 50 unread emails
+3. Classify each one using Llama 3.3-70B
+4. Create the destination Gmail folder/label if it doesn't exist
+5. Move the email out of INBOX into the correct folder
+6. Print a formatted summary
 
-| Email | Category | Confidence |
-|---|---|---|
-| Vendor invoice #INV-2024-0892, Net 30 payment | Invoice | 97% |
-| Maternity leave request, 16 weeks from September | HR Query | 99% |
-| Laptop stuck on boot after Windows 11 update | IT Support | 99% |
-| Client requesting bulk CSV export feature | Client Request | 98% |
-| All-hands Q2 review, mandatory attendance | Internal Announcement | 99% |
-| "Claim your $10,000 Amazon gift card" | Spam | 99% |
-| Weekend hiking trail recommendation | Other | 95% |
+### Example output
+
+```
+Connecting to Gmail and fetching unread emails...
+
+Processed 50 email(s) — 50 classified, 0 failed.
+
+  [Spam       ] ( 99%) → Spam
+    Subject : ⏳ Fouzan, ₹2750 Vouchers + Lifetime FREE Credit Card!
+    Reason  : Promotional message with a voucher offer and call to action.
+
+  [Jobs       ] ( 90%) → Jobs
+    Subject : New jobs posted from careers.hydroone.com
+    Reason  : Job alert from a company career portal matching saved search criteria.
+
+  [Recruiters ] ( 95%) → Recruiters
+    Subject : AI Engineer (Fresher) @ AAPNA Infotech
+    Reason  : Unsolicited message about a job opportunity from a recruiter.
+
+  [Learning   ] ( 90%) → Learning
+    Subject : Beyond the Notebook: Shipping AI Agents to Production (Part 2)
+    Reason  : Notification about an upcoming educational webinar on AI engineering.
+
+  [Personal   ] ( 90%) → Personal
+    Subject : Graduation Pool Party & Farewell — Friday 5PM
+    Reason  : Personal invitation to a social event from an acquaintance.
+```
 
 ---
 
 ## Tests
 
-The test suite consists of 10 live integration tests that call the Groq API with realistic synthetic emails and assert correct category, valid confidence range, and non-empty reason.
+10 live integration tests call the Groq API with realistic synthetic emails and assert correct category, valid confidence range, and a non-empty reason.
 
 ```bash
 pytest tests/ -v
 ```
 
 ```
-tests/test_classifier.py::test_invoice_vendor_billing             PASSED
-tests/test_classifier.py::test_invoice_overdue_payment_reminder   PASSED
-tests/test_classifier.py::test_hr_query_maternity_leave           PASSED
-tests/test_classifier.py::test_it_support_password_reset          PASSED
-tests/test_classifier.py::test_it_support_laptop_boot_failure     PASSED
-tests/test_classifier.py::test_client_request_feature_request     PASSED
-tests/test_classifier.py::test_client_request_billing_complaint   PASSED
-tests/test_classifier.py::test_internal_announcement_all_hands    PASSED
-tests/test_classifier.py::test_spam_gift_card_scam                PASSED
-tests/test_classifier.py::test_other_personal_message             PASSED
+tests/test_classifier.py::test_spam_gift_card_scam           PASSED
+tests/test_classifier.py::test_spam_pharma_promotion         PASSED
+tests/test_classifier.py::test_learning_course_update        PASSED
+tests/test_classifier.py::test_learning_tech_newsletter      PASSED
+tests/test_classifier.py::test_jobs_interview_invitation     PASSED
+tests/test_classifier.py::test_jobs_application_rejection    PASSED
+tests/test_classifier.py::test_recruiters_linkedin_outreach  PASSED
+tests/test_classifier.py::test_recruiters_agency_blast       PASSED
+tests/test_classifier.py::test_personal_friend_message       PASSED
+tests/test_classifier.py::test_other_utility_bill            PASSED
 
-========================= 10 passed in 12.43s =========================
+========================= 10 passed in 4.55s =========================
 ```
-
-Each test asserts:
-- Returned category matches the expected label exactly
-- Confidence is a valid float within `[0.0, 1.0]`
-- Reason is a non-empty string
 
 ---
 
 ## Design Decisions
 
-**Why Groq instead of OpenAI?** Groq's LPU hardware delivers Llama 3.3-70B inference at sub-500ms latency with a generous free tier — well-suited for real-time inbox routing where OpenAI's cost at scale becomes a factor.
+**Why Groq instead of OpenAI?** Groq's LPU hardware delivers Llama 3.3-70B inference at sub-500ms latency with a generous free tier — fast enough for real-time inbox sorting without any cost at personal scale.
 
-**Why no fine-tuning?** The category taxonomy is encoded directly in the system prompt with descriptions precise enough that Llama 3.3-70B classifies correctly without any labelled training data. This keeps the system maintainable: adding or changing a category is a one-line edit in `categories.py`.
+**Why no fine-tuning?** The category taxonomy is encoded directly in the system prompt with descriptions precise enough that the model classifies correctly out of the box. Adding or changing a category is a one-line edit in `src/categories.py`.
 
-**Why `temperature=0.1`?** Classification is a deterministic task. Near-zero temperature yields consistent results across repeated calls on identical inputs, which matters for auditability in enterprise workflows.
+**Why `temperature=0.1`?** Classification is a deterministic task. Near-zero temperature yields consistent results across repeated calls on identical inputs.
 
-**Why live integration tests instead of mocks?** Mocking the Groq client would test the JSON parsing logic but not the thing that matters — whether the model actually classifies emails correctly. All 10 tests run against the real API.
+**Why live integration tests instead of mocks?** Mocking the Groq client would test JSON parsing, not whether the model actually classifies emails correctly. All 10 tests run against the real API.
+
+**Why `imaplib` (stdlib) instead of a third-party library?** No extra dependency needed. Standard IMAP over SSL handles everything: folder listing, creation, copy, and delete.
 
 ---
 
 ## Extending the Classifier
 
-**Add a new category** — append a `Category` entry to `CATEGORIES` in `src/categories.py`. The prompt rebuilds automatically.
+**Add a new category** — append a `Category` entry to `CATEGORIES` in `src/categories.py`. The prompt and folder logic pick it up automatically.
 
-**Batch classification** — wrap `classify_email` calls in `asyncio.gather` with an async Groq client for parallel processing.
+**Process more emails** — change the `limit` argument in `main.py`: `run_classifier(limit=200)`.
 
-**Webhook integration** — expose `classify_email` behind a FastAPI endpoint and wire it to your email provider's webhook (Gmail Pub/Sub, Outlook Graph API, etc.).
+**Schedule it** — add a cron job or use Task Scheduler (Windows) to run `python main.py` on a recurring interval.
+
+**Webhook / always-on** — expose `run_classifier` behind a FastAPI endpoint and wire it to Gmail Pub/Sub for instant classification on every new email.
 
 ---
 
